@@ -22,13 +22,13 @@ pub struct DFA {
 }
 
 impl DFA {
-    fn new(
+    fn validate(
         states: usize,
         start: usize,
-        accept: HashSet<usize>,
-        alphabet: HashSet<char>,
-        tfn: HashMap<(usize, char), usize>,
-    ) -> Result<Self, DFATypeError> {
+        accept: &HashSet<usize>,
+        alphabet: &HashSet<char>,
+        tfn: &HashMap<(usize, char), usize>,
+    ) -> Result<(), DFATypeError> {
         if !(start < states) {
             return Err(DFATypeError::InvalidStartState);
         }
@@ -45,6 +45,18 @@ impl DFA {
         if !(tfn.len() == states * alphabet.len()) || !(tfn.values().all(|&v| v < states)) {
             return Err(DFATypeError::InvalidTransitionFunction);
         }
+
+        Ok(())
+    }
+
+    pub fn new(
+        states: usize,
+        start: usize,
+        accept: HashSet<usize>,
+        alphabet: HashSet<char>,
+        tfn: HashMap<(usize, char), usize>,
+    ) -> Result<Self, DFATypeError> {
+        Self::validate(states, start, &accept, &alphabet, &tfn)?;
 
         let states: HashSet<State> = HashSet::from_iter((0..states).map(|s| State(s)));
         let start = State(start);
