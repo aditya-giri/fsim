@@ -5,3 +5,5 @@
 - add a fn to dfa impl to incrementally create tfn
 - use a list slice or something instead of recreating State objects for final state? or annotate state with is_final?
 - switch to thiserror for less boilerplate in error class definitions?
+- stop using tfn.clone() in tests? is there a better way to do it?
+-

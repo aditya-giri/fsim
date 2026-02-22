@@ -85,12 +85,78 @@ mod tests {
     #[test]
     fn good_dfa_succeeds() {
         let _ = DFA::new(1, 0, HashSet::new(), HashSet::new(), HashMap::new()).unwrap();
-        assert!(true)
+        assert!(true);
     }
 
     #[test]
-    #[should_panic]
-    fn bad_dfa_fails() {
-        let _ = DFA::new(0, 0, HashSet::new(), HashSet::new(), HashMap::new()).unwrap();
+    fn invalid_start_state_fails() {
+        let bad_dfa = DFA::new(0, 0, HashSet::new(), HashSet::new(), HashMap::new());
+        assert!(matches!(bad_dfa, Err(DFATypeError::InvalidStartState)));
+    }
+
+    #[test]
+    fn invalid_accept_state_fails() {
+        let bad_dfa = DFA::new(1, 0, HashSet::from([1]), HashSet::new(), HashMap::new());
+        assert!(matches!(bad_dfa, Err(DFATypeError::InvalidAcceptState)));
+    }
+
+    #[test]
+    fn non_total_transition_fn_fails() {
+        // use a DFA that accepts strings of even length
+        let mut tfn = HashMap::new();
+        tfn.insert((0, '0'), 1);
+        tfn.insert((0, '1'), 1);
+        tfn.insert((1, '0'), 0);
+
+        let bad_dfa = DFA::new(2, 0, HashSet::from([0]), HashSet::from(['0', '1']), tfn);
+        assert!(matches!(
+            bad_dfa,
+            Err(DFATypeError::NonTotalTransitionFunction)
+        ));
+    }
+
+    #[test]
+    fn invalid_transition_fn_bad_state_in_domain_fails() {
+        let mut tfn = HashMap::new();
+        tfn.insert((0, '0'), 1);
+        tfn.insert((0, '1'), 1);
+        tfn.insert((1, '0'), 0);
+        tfn.insert((1, '1'), 0);
+
+        tfn.insert((2, '0'), 1);
+        let bad_dfa = DFA::new(2, 0, HashSet::from([0]), HashSet::from(['0', '1']), tfn);
+        assert!(matches!(
+            bad_dfa,
+            Err(DFATypeError::InvalidTransitionFunction)
+        ));
+    }
+
+    #[test]
+    fn invalid_transition_fn_bad_alphabet_in_domain_fails() {
+        let mut tfn = HashMap::new();
+        tfn.insert((0, '0'), 1);
+        tfn.insert((0, '1'), 1);
+        tfn.insert((1, '0'), 0);
+        tfn.insert((1, '1'), 0);
+        tfn.insert((0, '2'), 0);
+        let bad_dfa = DFA::new(2, 0, HashSet::from([0]), HashSet::from(['0', '1']), tfn);
+        assert!(matches!(
+            bad_dfa,
+            Err(DFATypeError::InvalidTransitionFunction)
+        ));
+    }
+
+    #[test]
+    fn invalid_transition_fn_bad_state_in_range_fails() {
+        let mut tfn = HashMap::new();
+        tfn.insert((0, '0'), 1);
+        tfn.insert((0, '1'), 2);
+        tfn.insert((1, '0'), 0);
+        tfn.insert((1, '1'), 0);
+        let bad_dfa = DFA::new(2, 0, HashSet::from([0]), HashSet::from(['0', '1']), tfn);
+        assert!(matches!(
+            bad_dfa,
+            Err(DFATypeError::InvalidTransitionFunction)
+        ));
     }
 }
