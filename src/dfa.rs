@@ -6,9 +6,6 @@ use itertools::Itertools;
 pub struct State(usize);
 
 pub struct DFA {
-    // states
-    // should this be a set of concrete objects? or just a number? we dont care about naming each state if we can find a way to make
-    // the transition function work?
     states: HashSet<State>,
     start: State,
     accept: HashSet<State>,
