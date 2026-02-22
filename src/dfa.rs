@@ -1,23 +1,23 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub struct DFA {
     // states
     // should this be a set of concrete objects? or just a number? we dont care about naming each state if we can find a way to make
     // the transition function work?
-    states: i32,
-    start: i32,
-    accept: HashSet<i32>,
+    states: usize,
+    start: usize,
+    accept: HashSet<usize>,
     alphabet: HashSet<char>,
-    tfn: HashSet<(i32, char, i32)>,
+    tfn: HashMap<(usize, char), usize>,
 }
 
 impl DFA {
     fn new(
-        states: i32,
-        start: i32,
-        accept: HashSet<i32>,
+        states: usize,
+        start: usize,
+        accept: HashSet<usize>,
         alphabet: HashSet<char>,
-        tfn: HashSet<(i32, char, i32)>,
+        tfn: HashMap<(usize, char), usize>,
     ) -> Self {
         Self {
             states,
@@ -35,7 +35,7 @@ mod tests {
 
     #[test]
     fn create_dfa() {
-        let dfa = DFA::new(1, 0, HashSet::new(), HashSet::new(), HashSet::new());
+        let dfa = DFA::new(1, 0, HashSet::new(), HashSet::new(), HashMap::new());
         let _ = dfa;
         assert!(true)
     }
