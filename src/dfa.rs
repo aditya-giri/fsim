@@ -50,9 +50,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn create_dfa() {
-        let dfa = DFA::new(1, 0, HashSet::new(), HashSet::new(), HashMap::new());
-        let _ = dfa;
+    fn good_dfa_succeeds() {
+        let _ = DFA::new(1, 0, HashSet::new(), HashSet::new(), HashMap::new());
         assert!(true)
+    }
+
+    #[test]
+    #[should_panic]
+    fn bad_dfa_fails() {
+        let _ = DFA::new(0, 0, HashSet::new(), HashSet::new(), HashMap::new());
     }
 }
