@@ -6,4 +6,5 @@
 - use a list slice or something instead of recreating State objects for final state? or annotate state with is_final?
 - switch to thiserror for less boilerplate in error class definitions?
 - stop using tfn.clone() in tests? is there a better way to do it?
--
+- do we need to impl clone and copy for state? what are the implications of doing so?
+- put some canonical dfas in a reusable place so i can use in tests?

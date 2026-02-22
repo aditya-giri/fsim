@@ -2,6 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 
+pub enum SimulationResult {
+    Accepted,
+    Rejected,
+}
+
 #[derive(Debug)]
 pub enum DFATypeError {
     InvalidStartState,
@@ -10,7 +15,7 @@ pub enum DFATypeError {
     NonTotalTransitionFunction,
 }
 
-#[derive(PartialEq, Hash, Eq)]
+#[derive(PartialEq, Hash, Eq, Copy, Clone)]
 pub struct State(usize);
 
 pub struct DFA {
@@ -75,6 +80,25 @@ impl DFA {
         };
 
         Ok(dfa)
+    }
+
+    pub fn simulate(&self, input: &String) -> SimulationResult {
+        // TODO: validate input
+        // TODO: understand better what is going on here. is self.start moved? cloned? what happens in the loop?
+        let mut current_state = self.start;
+        for s in input.chars() {
+            let new_state = self.tfn.get(&(current_state, s));
+            match new_state {
+                Some(&s) => {
+                    current_state = s;
+                }
+                None => (),
+            }
+        }
+        if self.accept.contains(&current_state) {
+            return SimulationResult::Accepted;
+        }
+        SimulationResult::Rejected
     }
 }
 
@@ -158,5 +182,50 @@ mod tests {
             bad_dfa,
             Err(DFATypeError::InvalidTransitionFunction)
         ));
+    }
+
+    #[test]
+    fn test_simulate_accepts_even_length_string() {
+        let mut tfn = HashMap::new();
+        tfn.insert((0, '0'), 1);
+        tfn.insert((0, '1'), 1);
+        tfn.insert((1, '0'), 0);
+        tfn.insert((1, '1'), 0);
+        let dfa = DFA::new(2, 0, HashSet::from([0]), HashSet::from(['0', '1']), tfn).unwrap();
+
+        let input = String::from("0011");
+
+        let sim = dfa.simulate(&input);
+        assert!(matches!(sim, SimulationResult::Accepted));
+    }
+
+    #[test]
+    fn test_simulate_rejects_odd_length_string() {
+        let mut tfn = HashMap::new();
+        tfn.insert((0, '0'), 1);
+        tfn.insert((0, '1'), 1);
+        tfn.insert((1, '0'), 0);
+        tfn.insert((1, '1'), 0);
+        let dfa = DFA::new(2, 0, HashSet::from([0]), HashSet::from(['0', '1']), tfn).unwrap();
+
+        let input = String::from("00110");
+
+        let sim = dfa.simulate(&input);
+        assert!(matches!(sim, SimulationResult::Rejected));
+    }
+
+    #[test]
+    fn test_simulate_accepts_empty_string() {
+        let mut tfn = HashMap::new();
+        tfn.insert((0, '0'), 1);
+        tfn.insert((0, '1'), 1);
+        tfn.insert((1, '0'), 0);
+        tfn.insert((1, '1'), 0);
+        let dfa = DFA::new(2, 0, HashSet::from([0]), HashSet::from(['0', '1']), tfn).unwrap();
+
+        let input = String::from("");
+
+        let sim = dfa.simulate(&input);
+        assert!(matches!(sim, SimulationResult::Accepted));
     }
 }
