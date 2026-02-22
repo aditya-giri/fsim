@@ -23,11 +23,11 @@ impl DFA {
     ) -> Self {
         assert!(start < states);
         assert!(accept.iter().all(|&s| s < states));
-        assert!(
-            (0..states)
-                .cartesian_product(alphabet.iter())
-                .all(|(s, &a)| tfn.contains_key(&(s, a)))
-        );
+        let mut domain_of_tfn = (0..states).cartesian_product(alphabet.iter()); // TODO this shouldn't be mut?
+        assert!(domain_of_tfn.all(|(s, &a)| tfn.contains_key(&(s, a))));
+        assert!(tfn.len() == domain_of_tfn.count());
+        assert!(tfn.values().all(|&v| v < states));
+
         let states: HashSet<State> = HashSet::from_iter((0..states).map(|s| State(s)));
         let start = State(start);
         let accept = accept.into_iter().map(|s| State(s)).collect();
