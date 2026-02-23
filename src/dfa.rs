@@ -15,6 +15,11 @@ pub enum DFATypeError {
     NonTotalTransitionFunction,
 }
 
+#[derive(Debug)]
+pub enum InputError {
+    InvalidSymbol,
+}
+
 #[derive(PartialEq, Hash, Eq, Copy, Clone)]
 pub struct State(usize);
 
@@ -27,7 +32,7 @@ pub struct DFA {
 }
 
 impl DFA {
-    fn validate(
+    fn validate_dfa(
         states: usize,
         start: usize,
         accept: &HashSet<usize>,
@@ -54,6 +59,13 @@ impl DFA {
         Ok(())
     }
 
+    fn validate_input(&self, input: &String) -> Result<(), InputError> {
+        if input.chars().all(|c| self.alphabet.contains(&c)) {
+            return Ok(());
+        }
+        Err(InputError::InvalidSymbol)
+    }
+
     pub fn new(
         states: usize,
         start: usize,
@@ -61,7 +73,7 @@ impl DFA {
         alphabet: HashSet<char>,
         tfn: HashMap<(usize, char), usize>,
     ) -> Result<Self, DFATypeError> {
-        Self::validate(states, start, &accept, &alphabet, &tfn)?;
+        Self::validate_dfa(states, start, &accept, &alphabet, &tfn)?;
 
         let states: HashSet<State> = HashSet::from_iter((0..states).map(|s| State(s)));
         let start = State(start);
@@ -82,8 +94,8 @@ impl DFA {
         Ok(dfa)
     }
 
-    pub fn simulate(&self, input: &String) -> SimulationResult {
-        // TODO: validate input
+    pub fn simulate(&self, input: &String) -> Result<SimulationResult, InputError> {
+        self.validate_input(input)?;
         // TODO: understand better what is going on here. is self.start moved? cloned? what happens in the loop?
         let mut current_state = self.start;
         for s in input.chars() {
@@ -96,9 +108,9 @@ impl DFA {
             }
         }
         if self.accept.contains(&current_state) {
-            return SimulationResult::Accepted;
+            return Ok(SimulationResult::Accepted);
         }
-        SimulationResult::Rejected
+        Ok(SimulationResult::Rejected)
     }
 }
 
@@ -185,7 +197,22 @@ mod tests {
     }
 
     #[test]
-    fn test_simulate_accepts_even_length_string() {
+    fn simulate_fails_on_invalid_input() {
+        let mut tfn = HashMap::new();
+        tfn.insert((0, '0'), 1);
+        tfn.insert((0, '1'), 1);
+        tfn.insert((1, '0'), 0);
+        tfn.insert((1, '1'), 0);
+        let dfa = DFA::new(2, 0, HashSet::from([0]), HashSet::from(['0', '1']), tfn).unwrap();
+
+        let input = String::from("00a11");
+
+        let sim = dfa.simulate(&input);
+        assert!(matches!(sim, Err(InputError::InvalidSymbol)));
+    }
+
+    #[test]
+    fn simulate_accepts_even_length_string() {
         let mut tfn = HashMap::new();
         tfn.insert((0, '0'), 1);
         tfn.insert((0, '1'), 1);
@@ -196,11 +223,11 @@ mod tests {
         let input = String::from("0011");
 
         let sim = dfa.simulate(&input);
-        assert!(matches!(sim, SimulationResult::Accepted));
+        assert!(matches!(sim, Ok(SimulationResult::Accepted)));
     }
 
     #[test]
-    fn test_simulate_rejects_odd_length_string() {
+    fn simulate_rejects_odd_length_string() {
         let mut tfn = HashMap::new();
         tfn.insert((0, '0'), 1);
         tfn.insert((0, '1'), 1);
@@ -211,11 +238,11 @@ mod tests {
         let input = String::from("00110");
 
         let sim = dfa.simulate(&input);
-        assert!(matches!(sim, SimulationResult::Rejected));
+        assert!(matches!(sim, Ok(SimulationResult::Rejected)));
     }
 
     #[test]
-    fn test_simulate_accepts_empty_string() {
+    fn simulate_accepts_empty_string() {
         let mut tfn = HashMap::new();
         tfn.insert((0, '0'), 1);
         tfn.insert((0, '1'), 1);
@@ -226,6 +253,6 @@ mod tests {
         let input = String::from("");
 
         let sim = dfa.simulate(&input);
-        assert!(matches!(sim, SimulationResult::Accepted));
+        assert!(matches!(sim, Ok(SimulationResult::Accepted)));
     }
 }
