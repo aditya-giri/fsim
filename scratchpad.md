@@ -8,3 +8,6 @@
 - stop using tfn.clone() in tests? is there a better way to do it?
 - do we need to impl clone and copy for state? what are the implications of doing so?
 - put some canonical dfas in a reusable place so i can use in tests?
+- move common definitions like state into their own file
+- call it invalidacceptstates?
+- in new, make accept, alphabet etc just plain lists (dedupe and conversion to hashset can happen internally with warnings if req)
