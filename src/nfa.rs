@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 
-#[derive(PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(PartialEq, Eq, Hash, Copy, Clone, Debug)]
 pub struct State(usize);
 
 #[derive(Debug)]
@@ -97,14 +97,21 @@ impl NFA {
         Err(InputError::InvalidSymbol)
     }
 
-    fn epsilon_closure(&self, states: &mut HashSet<State>) {
-        let additional_states: HashSet<&State> = states
-            .iter()
-            .filter_map(|&s| self.tfn.get(&(s, EPSILON)))
-            .flatten()
-            .collect();
+    fn epsilon_closure(&self, states: &HashSet<State>) -> HashSet<State> {
+        let mut closure = states.clone();
+        let mut worklist: VecDeque<State> = states.iter().cloned().collect();
 
-        states.extend(additional_states);
+        while let Some(s) = worklist.pop_front() {
+            if let Some(nexts) = self.tfn.get(&(s, EPSILON)) {
+                for &next in nexts {
+                    if closure.insert(next) {
+                        // discovered a new state
+                        worklist.push_back(next);
+                    }
+                }
+            }
+        }
+        closure
     }
 
     pub fn simulate(&self, input: &String) -> Result<SimulationResult, InputError> {
@@ -112,9 +119,9 @@ impl NFA {
         // TODO: understand better what is going on here. is self.start moved? cloned? what happens in the loop?
         let mut current_states = HashSet::from([self.start]);
         for s in input.chars() {
-            self.epsilon_closure(&mut current_states);
+            let epsilon_closure = self.epsilon_closure(&current_states);
             let mut new_states: HashSet<State> = HashSet::new();
-            for current_state in current_states {
+            for current_state in epsilon_closure {
                 let new_states_for_current_state = self.tfn.get(&(current_state, s));
                 match new_states_for_current_state {
                     Some(s) => new_states.extend(s),
@@ -123,7 +130,8 @@ impl NFA {
             }
             current_states = new_states;
         }
-        let y: HashSet<&State> = self.accept.intersection(&current_states).collect();
+        let final_epsilon_closure = self.epsilon_closure(&current_states);
+        let y: HashSet<&State> = self.accept.intersection(&final_epsilon_closure).collect();
         if y.is_empty() {
             return Ok(SimulationResult::Rejected);
         }
@@ -196,6 +204,24 @@ mod tests {
             bad_nfa,
             Err(NFATypeError::InvalidTransitionFunction)
         ));
+    }
+
+    #[test]
+    fn epsilon_closure_is_correct() {
+        let mut tfn = HashMap::new();
+        tfn.insert((0, EPSILON), HashSet::from([1]));
+        tfn.insert((0, '1'), HashSet::from([1]));
+        tfn.insert((1, EPSILON), HashSet::from([2, 3]));
+        tfn.insert((1, '1'), HashSet::from([0]));
+        let nfa = NFA::new(4, 0, HashSet::from([0]), HashSet::from(['0', '1']), tfn).unwrap();
+
+        let ec0 = nfa.epsilon_closure(&HashSet::from([State(0)]));
+        let ec1 = nfa.epsilon_closure(&HashSet::from([State(1)]));
+        let ec2 = nfa.epsilon_closure(&HashSet::from([State(2)]));
+
+        assert_eq!(ec0, HashSet::from([State(0), State(1), State(2), State(3)]));
+        assert_eq!(ec1, HashSet::from([State(1), State(2), State(3)]));
+        assert_eq!(ec2, HashSet::from([State(2)]));
     }
 
     #[test]

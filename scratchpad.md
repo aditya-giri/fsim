@@ -11,3 +11,4 @@
 - move common definitions like state into their own file
 - call it invalidacceptstates?
 - in new, make accept, alphabet etc just plain lists (dedupe and conversion to hashset can happen internally with warnings if req)
+- test nfa with epsilons in tfn
