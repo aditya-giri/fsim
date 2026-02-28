@@ -104,7 +104,7 @@ impl DFA {
                 Some(&s) => {
                     current_state = s;
                 }
-                None => (),
+                None => (), // we know the tfn is valid so we won't actually reach this state
             }
         }
         if self.accept.contains(&current_state) {
