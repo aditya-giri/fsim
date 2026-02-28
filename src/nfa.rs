@@ -97,26 +97,38 @@ impl NFA {
         Err(InputError::InvalidSymbol)
     }
 
-    // pub fn simulate(&self, input: &String) -> Result<SimulationResult, InputError> {
-    //     self.validate_input(input)?;
-    //     // TODO: understand better what is going on here. is self.start moved? cloned? what happens in the loop?
-    //     let mut current_states = HashSet::from([self.start]);
-    //     for s in input.chars() {
-    //         for current_state in current_states {
-    //             let new_state = self.tfn.get(&(current_state, s));
-    //             match new_state {
-    //                 Some(&s) => {
-    //                     current_state = s;
-    //                 }
-    //                 None => (),
-    //             }
-    //         }
-    //     }
-    //     if self.accept.contains(&current_state) {
-    //         return Ok(SimulationResult::Accepted);
-    //     }
-    //     Ok(SimulationResult::Rejected)
-    // }
+    fn epsilon_closure(&self, states: &mut HashSet<State>) {
+        let additional_states: HashSet<&State> = states
+            .iter()
+            .filter_map(|&s| self.tfn.get(&(s, EPSILON)))
+            .flatten()
+            .collect();
+
+        states.extend(additional_states);
+    }
+
+    pub fn simulate(&self, input: &String) -> Result<SimulationResult, InputError> {
+        self.validate_input(input)?;
+        // TODO: understand better what is going on here. is self.start moved? cloned? what happens in the loop?
+        let mut current_states = HashSet::from([self.start]);
+        for s in input.chars() {
+            self.epsilon_closure(&mut current_states);
+            let mut new_states: HashSet<State> = HashSet::new();
+            for current_state in current_states {
+                let new_states_for_current_state = self.tfn.get(&(current_state, s));
+                match new_states_for_current_state {
+                    Some(s) => new_states.extend(s),
+                    None => (),
+                }
+            }
+            current_states = new_states;
+        }
+        let y: HashSet<&State> = self.accept.intersection(&current_states).collect();
+        if y.is_empty() {
+            return Ok(SimulationResult::Rejected);
+        }
+        Ok(SimulationResult::Accepted)
+    }
 }
 
 #[cfg(test)]
@@ -184,5 +196,52 @@ mod tests {
             bad_nfa,
             Err(NFATypeError::InvalidTransitionFunction)
         ));
+    }
+
+    #[test]
+    fn simulate_fails_on_invalid_input() {
+        let mut tfn = HashMap::new();
+        tfn.insert((0, '0'), HashSet::from([1]));
+        tfn.insert((0, '1'), HashSet::from([1]));
+        tfn.insert((1, '0'), HashSet::from([0]));
+        tfn.insert((1, '1'), HashSet::from([0]));
+        let nfa = NFA::new(2, 0, HashSet::from([0]), HashSet::from(['0', '1']), tfn).unwrap();
+
+        let input = String::from("00a11");
+
+        let sim = nfa.simulate(&input);
+        assert!(matches!(sim, Err(InputError::InvalidSymbol)));
+    }
+
+    #[test]
+    fn simulate_accepts_string_ending_with_11() {
+        let mut tfn = HashMap::new();
+        tfn.insert((0, '0'), HashSet::from([0]));
+        tfn.insert((0, '1'), HashSet::from([0, 1]));
+        tfn.insert((1, '1'), HashSet::from([2]));
+        let nfa = NFA::new(3, 0, HashSet::from([2]), HashSet::from(['0', '1']), tfn).unwrap();
+
+        let input = String::from("0011");
+
+        let sim = nfa.simulate(&input);
+        assert!(matches!(sim, Ok(SimulationResult::Accepted)));
+    }
+
+    #[test]
+    fn simulate_rejects_strings_not_ending_in_11() {
+        let mut tfn = HashMap::new();
+        tfn.insert((0, '0'), HashSet::from([0]));
+        tfn.insert((0, '1'), HashSet::from([0, 1]));
+        tfn.insert((1, '1'), HashSet::from([2]));
+        let nfa = NFA::new(3, 0, HashSet::from([2]), HashSet::from(['0', '1']), tfn).unwrap();
+
+        let sim = nfa.simulate(&String::from("0000"));
+        assert!(matches!(sim, Ok(SimulationResult::Rejected)));
+        let sim = nfa.simulate(&String::from("0001"));
+        assert!(matches!(sim, Ok(SimulationResult::Rejected)));
+        let sim = nfa.simulate(&String::from("0010"));
+        assert!(matches!(sim, Ok(SimulationResult::Rejected)));
+        let sim = nfa.simulate(&String::from(""));
+        assert!(matches!(sim, Ok(SimulationResult::Rejected)));
     }
 }
