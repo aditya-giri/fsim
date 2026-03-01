@@ -1,8 +1,5 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-#[derive(PartialEq, Eq, Hash, Copy, Clone, Debug)]
-pub struct State(usize);
-
 #[derive(Debug)]
 pub enum NFATypeError {
     InvalidStartState,
@@ -23,12 +20,15 @@ pub enum InputError {
 
 const EPSILON: char = '~';
 
+type State = usize;
+type TransitionFn = HashMap<(State, char), HashSet<State>>;
+
 pub struct NFA {
     states: HashSet<State>,
     start: State,
     accept: HashSet<State>,
     alphabet: HashSet<char>,
-    tfn: HashMap<(State, char), HashSet<State>>,
+    tfn: TransitionFn,
 }
 
 impl NFA {
@@ -69,13 +69,7 @@ impl NFA {
     ) -> Result<Self, NFATypeError> {
         Self::validate_nfa(states, start, &accept, &alphabet, &tfn)?;
 
-        let states: HashSet<State> = HashSet::from_iter((0..states).map(|s| State(s)));
-        let start = State(start);
-        let accept = accept.into_iter().map(|s| State(s)).collect();
-        let tfn: HashMap<(State, char), HashSet<State>> = tfn
-            .into_iter()
-            .map(|(k, v)| ((State(k.0), k.1), v.into_iter().map(|s| State(s)).collect()))
-            .collect();
+        let states = HashSet::from_iter(0..states);
         let mut alphabet_with_epsilon = alphabet.clone();
         alphabet_with_epsilon.insert(EPSILON);
 
@@ -215,13 +209,13 @@ mod tests {
         tfn.insert((1, '1'), HashSet::from([0]));
         let nfa = NFA::new(4, 0, HashSet::from([0]), HashSet::from(['0', '1']), tfn).unwrap();
 
-        let ec0 = nfa.epsilon_closure(&HashSet::from([State(0)]));
-        let ec1 = nfa.epsilon_closure(&HashSet::from([State(1)]));
-        let ec2 = nfa.epsilon_closure(&HashSet::from([State(2)]));
+        let ec0 = nfa.epsilon_closure(&HashSet::from([0]));
+        let ec1 = nfa.epsilon_closure(&HashSet::from([1]));
+        let ec2 = nfa.epsilon_closure(&HashSet::from([2]));
 
-        assert_eq!(ec0, HashSet::from([State(0), State(1), State(2), State(3)]));
-        assert_eq!(ec1, HashSet::from([State(1), State(2), State(3)]));
-        assert_eq!(ec2, HashSet::from([State(2)]));
+        assert_eq!(ec0, HashSet::from([0, 1, 2, 3]));
+        assert_eq!(ec1, HashSet::from([1, 2, 3]));
+        assert_eq!(ec2, HashSet::from([2]));
     }
 
     #[test]

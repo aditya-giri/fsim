@@ -20,15 +20,15 @@ pub enum InputError {
     InvalidSymbol,
 }
 
-#[derive(PartialEq, Hash, Eq, Copy, Clone)]
-pub struct State(usize);
+type State = usize;
+type TransitionFn = HashMap<(State, char), State>;
 
 pub struct DFA {
     states: HashSet<State>,
     start: State,
     accept: HashSet<State>,
     alphabet: HashSet<char>,
-    tfn: HashMap<(State, char), State>,
+    tfn: TransitionFn,
 }
 
 impl DFA {
@@ -75,13 +75,7 @@ impl DFA {
     ) -> Result<Self, DFATypeError> {
         Self::validate_dfa(states, start, &accept, &alphabet, &tfn)?;
 
-        let states: HashSet<State> = HashSet::from_iter((0..states).map(|s| State(s)));
-        let start = State(start);
-        let accept = accept.into_iter().map(|s| State(s)).collect();
-        let tfn: HashMap<(State, char), State> = tfn
-            .into_iter()
-            .map(|(k, v)| ((State(k.0), k.1), State(v)))
-            .collect();
+        let states = HashSet::from_iter(0..states);
 
         let dfa = Self {
             states,
