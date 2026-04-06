@@ -23,3 +23,7 @@
   }```
   
 - probably annotate states with accept?
+- canonical: make state 0 the start state internally for DFAs
+- maybe a dfa fn to delete a state? should take as param another state that incoming arrows should map to
+- recanonicalize minimized dfas
+- maybe allow for dfas to be referenced by something other than just a usize?

@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+};
 
 use itertools::Itertools;
 
@@ -106,6 +109,16 @@ impl DFA {
             return Ok(SimulationResult::Accepted);
         }
         Ok(SimulationResult::Rejected)
+    }
+}
+
+impl fmt::Display for DFA {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "states: {:?}", self.states)?;
+        writeln!(f, "start: {}", self.start)?;
+        writeln!(f, "accept: {:?}", self.accept)?;
+        writeln!(f, "alphabet: {:?}", self.alphabet)?;
+        write!(f, "tfn: {:?}", self.tfn)
     }
 }
 
