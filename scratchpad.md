@@ -21,3 +21,5 @@
           Self { states }
       }
   }```
+  
+- probably annotate states with accept?

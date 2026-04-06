@@ -20,15 +20,16 @@ pub enum InputError {
     InvalidSymbol,
 }
 
-type State = usize;
-type TransitionFn = HashMap<(State, char), State>;
+pub type State = usize;
+pub type TransitionFn = HashMap<(State, char), State>;
 
+#[derive(Clone)]
 pub struct DFA {
-    states: HashSet<State>,
-    start: State,
-    accept: HashSet<State>,
-    alphabet: HashSet<char>,
-    tfn: TransitionFn,
+    pub(crate) states: HashSet<State>,
+    pub(crate) start: State,
+    pub(crate) accept: HashSet<State>,
+    pub(crate) alphabet: HashSet<char>,
+    pub(crate) tfn: TransitionFn,
 }
 
 impl DFA {
